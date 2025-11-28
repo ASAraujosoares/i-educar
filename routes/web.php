@@ -7,6 +7,7 @@ use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SocialiteCallbackController;
 use App\Http\Controllers\SocialiteRedirectController;
 use App\Http\Controllers\WebController;
+use App\Http\Controllers\FrequenciaController;
 use App\Http\Middleware\AnnouncementMiddleware;
 use App\Process;
 use Illuminate\Support\Facades\Auth;
@@ -195,6 +196,9 @@ Route::group(['middleware' => ['ieducar.navigation', 'ieducar.footer', 'ieducar.
 
     Route::post('/enrollments-promotion', [EnrollmentsPromotionController::class, 'processEnrollmentsPromotionJobs'])
         ->name('enrollments.promotion');
+
+    Route::get('/frequencia/lancamento', [FrequenciaController::class, 'lancamento'])->name('frequencia.lancamento');
+    Route::get('/frequencia/espelho', [FrequenciaController::class, 'espelho'])->name('frequencia.espelho');
 
     Route::fallback([WebController::class, 'fallback']);
 });

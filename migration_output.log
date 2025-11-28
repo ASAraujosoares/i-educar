@@ -1,0 +1,38 @@
+
+  Dropping all tables .......................................... 279.35ms DONE
+
+   INFO  Preparing database.
+
+  Creating migration table ...................................... 45.71ms DONE
+
+   INFO  Loading stored database schemas.
+
+  database/schema/pgsql-schema.sql ............................. 900.26ms DONE
+
+   INFO  Running migrations.
+
+  2025_11_05_210257_create_servidor_frequencia_table ............ 30.74ms FAIL
+
+   Illuminate\Database\QueryException
+
+  SQLSTATE[42P07]: Duplicate table: 7 ERROR:  relation "servidor_frequencia" already exists (Connection: pgsql, SQL: create table "pmieducar"."servidor_frequencia" ("id" bigserial not null primary key, "servidor_id" integer not null, "data" date not null, "status" varchar(255) check ("status" in ('Presente', 'Falta', 'Falta Justificada', 'Atestado', 'Folga')) not null, "observacao" text null, "registrado_por_usuario_id" bigint not null, "created_at" timestamp(0) without time zone null, "updated_at" timestamp(0) without time zone null))
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:824
+    820▕                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    821▕                 );
+    822▕             }
+    823▕
+  ➜ 824▕             throw new QueryException(
+    825▕                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    826▕             );
+    827▕         }
+    828▕     }
+
+      [2m+9 vendor frames [22m
+
+  10  database/migrations/2025_11_05_210257_create_servidor_frequencia_table.php:14
+      Illuminate\Support\Facades\Facade::__callStatic("create")
+      [2m+37 vendor frames [22m
+
+  48  artisan:35
+      Illuminate\Foundation\Console\Kernel::handle(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))

@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SituationController;
 use App\Http\Controllers\Api\StageController;
 use App\Http\Controllers\Api\StateController;
+use App\Http\Controllers\Api\ServidorController;
+use App\Http\Controllers\Api\ServidorFrequenciaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -86,4 +88,15 @@ Route::group(['prefix' => 'resource', 'as' => 'api.resource.', 'namespace' => 'A
     Route::get('evaluation-rule', 'EvaluationRule\ResourceEvaluationRuleController@index')->name('evaluation-rule');
     Route::get('discipline', 'Discipline\ResourceDisciplineController@index')->name('discipline');
     Route::get('country', 'Country\ResourceCountryController@index')->name('country');
+});
+
+Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'servidores'], static function () {
+    Route::get('/', [ServidorController::class, 'index']);
+});
+
+Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'servidor-frequencia'], static function () {
+    Route::post('/', [ServidorFrequenciaController::class, 'store']);
+    Route::put('/{id}', [ServidorFrequenciaController::class, 'update']);
+    Route::get('/servidor/{servidor_id}', [ServidorFrequenciaController::class, 'show']);
+    Route::get('/diario', [ServidorFrequenciaController::class, 'diario']);
 });

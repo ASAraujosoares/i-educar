@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Extensions\LegacyUserProvider;
+use App\Models\Employee;
+use App\Policies\EmployeePolicy;
 use App\Policies\ProcessPolicy;
 use App\User;
 use Illuminate\Contracts\Hashing\Hasher;
@@ -21,7 +23,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array
      */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy',
+        Employee::class => EmployeePolicy::class,
     ];
 
     /**

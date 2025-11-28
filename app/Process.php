@@ -95,4 +95,6 @@ class Process
     public const RELOCATE = 695;
 
     public const UNENROLLMENT = 696;
+
+    public const FREQUENCIA = 9999121;
 }

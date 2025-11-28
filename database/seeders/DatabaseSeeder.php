@@ -25,5 +25,8 @@ class DatabaseSeeder extends Seeder
         $this->incrementSequence('states');
         $this->incrementSequence('cities');
         $this->incrementSequence('districts');
+
+        $this->call(MissingUserTypesSeeder::class);
+        $this->call(FrequenciaPermissionSeeder::class);
     }
 }

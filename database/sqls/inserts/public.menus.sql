@@ -108,3 +108,4 @@ INSERT INTO public.menus VALUES (169, 3, 'Histórico de enturmações da matríc
 INSERT INTO public.menus VALUES (170, 3, 'Desfazer unificação de alunos', NULL, NULL, NULL, 99, 1, 2001, NULL, NULL, true, NULL, NULL);
 INSERT INTO public.menus VALUES (233, 20, 'Exportações', 'Exportações', NULL, NULL, 99, 1, 1020, NULL, NULL, true, NULL, NULL);
 INSERT INTO public.menus VALUES (234, 233, 'Exportação para o SEB', 'Exportação para o SEB', '/exportacao-para-o-seb', NULL, 99, 1, 1021, NULL, NULL, true, NULL, NULL);
+INSERT INTO public.menus VALUES (235, 4, 'Frequência de Servidores', 'Registro de frequência dos servidores', '/module/Api/ServidorFrequencia', 'fa-calendar-check-o', 3, 3, 9998920, 9998920, 71, true, NULL, NULL);
