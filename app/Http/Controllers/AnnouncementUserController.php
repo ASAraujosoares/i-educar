@@ -16,14 +16,22 @@ class AnnouncementUserController extends Controller
     {
         $this->breadcrumb('Avisos');
         $this->menu(Process::ANNOUNCEMENT);
-        $announcement = Announcement::query()->latest()->first();
-        $announcement->users()->sync([
-            $request->user()->getKey() => ['read_at' => now()],
-        ]);
+
+        $user = $request->user();
+
+        $announcement = Announcement::query()
+            ->whereHas('userTypes', fn ($q) => $q->whereKey($user->ref_cod_tipo_usuario))
+            ->latest()->first();
+
+        if ($announcement) {
+            $announcement->users()->syncWithoutDetaching([
+                $user->getKey() => ['read_at' => now()],
+            ]);
+        }
 
         return view('announcement.user.show', [
             'announcement' => $announcement,
-            'schools' => $this->getUserSchools($announcement->show_vacancy),
+            'schools' => $announcement ? $this->getUserSchools($announcement->show_vacancy) : [],
         ]);
     }
 
@@ -70,10 +78,17 @@ class AnnouncementUserController extends Controller
 
     public function confirm(Request $request)
     {
-        $announcement = Announcement::query()->latest()->first();
-        $announcement->users()->sync([
-            $request->user()->getKey() => ['confirmed_at' => now()],
-        ]);
+        $user = $request->user();
+
+        $announcement = Announcement::query()
+            ->whereHas('userTypes', fn ($q) => $q->whereKey($user->ref_cod_tipo_usuario))
+            ->latest()->first();
+
+        if ($announcement) {
+            $announcement->users()->syncWithoutDetaching([
+                $user->getKey() => ['confirmed_at' => now()],
+            ]);
+        }
 
         return redirect('/');
     }
