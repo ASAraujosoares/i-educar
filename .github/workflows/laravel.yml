@@ -1,0 +1,90 @@
+name: i-Educar CI Full
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    # Serviço de Banco de Dados (PostgreSQL)
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: ieducar_test
+          POSTGRES_USER: ieducar
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    # --- CONFIGURAÇÃO DO BACKEND (PHP) ---
+    - name: Setup do PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2' # Ajuste conforme seu composer.json
+        extensions: mbstring, dom, fileinfo, pgsql, pdo, pdo_pgsql, gd, curl, intl
+        coverage: none
+        tools: composer:v2
+
+    - name: Copiar .env
+      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+    - name: Instalar Dependências PHP
+      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+    # --- VERIFICAÇÃO DE ESTILO DE CÓDIGO (LINTING) ---
+    # Verifica se o código segue os padrões sem aplicar correções (apenas reporta erro)
+    # Se usar Laravel Pint, descomente a linha do Pint e comente a do php-cs-fixer
+    - name: Verificar Padrão de Código (PHP CS Fixer)
+      run: vendor/bin/php-cs-fixer fix --dry-run --diff --verbose
+      continue-on-error: false # Falha o CI se o código estiver fora do padrão
+      
+    # - name: Verificar Padrão de Código (Laravel Pint)
+    #   run: vendor/bin/pint --test
+
+    - name: Gerar Key da Aplicação
+      run: php artisan key:generate
+
+    - name: Permissões de Diretório
+      run: chmod -R 777 storage bootstrap/cache
+
+    # --- CONFIGURAÇÃO DO FRONTEND (Node.js) ---
+    - name: Setup do Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18' # Versão LTS recomendada
+        cache: 'npm'
+
+    - name: Instalar Dependências Frontend
+      run: npm ci # 'ci' é mais rápido e seguro que 'install' para pipelines
+
+    - name: Compilar Assets (Build)
+      # Se seu projeto for antigo (Laravel Mix), use 'npm run production'
+      # Se for novo (Vite), use 'npm run build'
+      run: npm run production 
+
+    # --- TESTES AUTOMATIZADOS ---
+    - name: Executar Migrations e Testes (PHPUnit)
+      env:
+        DB_CONNECTION: pgsql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 5432
+        DB_DATABASE: ieducar_test
+        DB_USERNAME: ieducar
+        DB_PASSWORD: password
+      run: |
+        php artisan migrate --force
+        vendor/bin/phpunit
