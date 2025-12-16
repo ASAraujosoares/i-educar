@@ -37,7 +37,7 @@ class WebController extends Controller
     public function fallback($uri)
     {
         if (str_starts_with($uri, 'web')) {
-            return redirect('intranet/educar_index.php');
+            return redirect('/dashboard');
         }
 
         return abort(404);

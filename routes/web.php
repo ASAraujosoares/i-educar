@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentInepController;
 use App\Http\Controllers\EnrollmentsPromotionController;
 use App\Http\Controllers\ExportController;
@@ -18,7 +19,9 @@ Route::redirect('/', '/web');
 
 Route::view('/docs-api', 'docs/api/index');
 
-Route::redirect('intranet/index.php', '/web')
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+Route::redirect('intranet/index.php', '/dashboard')
     ->name('home');
 
 Route::any('module/Api/{uri}', 'LegacyController@api')->where('uri', '.*');
