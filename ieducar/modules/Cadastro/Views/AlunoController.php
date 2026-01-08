@@ -1209,7 +1209,12 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         Portabilis_View_Helper_Application::loadJavascript($this, [
             '/vendor/legacy/Cadastro/Assets/Javascripts/Endereco.js',
             '/vendor/legacy/Cadastro/Assets/Javascripts/Addresses.js',
+            '/vendor/legacy/Cadastro/Assets/Javascripts/WebcamCapture.js',
         ]);
+
+        Portabilis_View_Helper_Application::embedJavascript($this, "
+            WebcamCapture.init('file');
+        ");
 
         $this->loadResourceAssets($this->getDispatcher());
 

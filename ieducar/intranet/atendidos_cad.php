@@ -837,9 +837,14 @@ return new class extends clsCadastro
             '/vendor/legacy/Cadastro/Assets/Javascripts/Addresses.js',
             '/vendor/legacy/Cadastro/Assets/Javascripts/Endereco.js',
             '/vendor/legacy/Cadastro/Assets/Javascripts/ModalCadastroPais.js',
+            '/vendor/legacy/Cadastro/Assets/Javascripts/WebcamCapture.js',
         ];
 
         Portabilis_View_Helper_Application::loadJavascript(viewInstance: $this, files: $script);
+
+        Portabilis_View_Helper_Application::embedJavascript(viewInstance: $this, script: "
+            WebcamCapture.init('photo');
+        ");
     }
 
     public function Novo()
