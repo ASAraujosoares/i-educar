@@ -3,7 +3,6 @@ var WebcamCapture = (function() {
     function init(inputId) {
         var photoInput = document.getElementById(inputId);
         if (!photoInput) {
-            // Try searching by name if ID is not found
             var inputs = document.getElementsByName(inputId);
             if (inputs.length > 0) {
                 photoInput = inputs[0];
@@ -13,71 +12,101 @@ var WebcamCapture = (function() {
             }
         }
 
-        // Check if container already exists to avoid duplicates
-        if (document.getElementById('webcam-container-' + inputId)) {
+        if (document.getElementById('btn-webcam-' + inputId)) {
             return;
         }
 
-        // State variables for this specific instance
-        var stream = null;
-        var video = document.createElement('video');
-        var canvas = document.createElement('canvas');
-        var container = document.createElement('div');
+        // Find the label associated with the input
+        // clsCampos generates label with for="id"
+        var label = document.querySelector('label[for="' + photoInput.id + '"]');
 
+        // Create "Open Camera" button
+        var btnStart = document.createElement('input');
+        btnStart.type = 'button';
+        btnStart.value = '📷 Abrir Câmera';
+        btnStart.className = 'btn_small';
+        btnStart.id = 'btn-webcam-' + inputId;
+        // Adjust margins to align with the "Escolha um arquivo" button/label
+        // The label likely has some display property, we want to sit next to it.
+        btnStart.style.margin = '0 0 0 10px';
+        btnStart.style.verticalAlign = 'middle';
+
+        // Insert button after the label.
+        // The label is often followed by a text node (space) and BR or description text.
+        // We insert immediately after the label to try to keep it on the same line.
+        if (label && label.nextSibling) {
+            label.parentNode.insertBefore(btnStart, label.nextSibling);
+        } else if (label) {
+            label.parentNode.appendChild(btnStart);
+        } else {
+            // Fallback
+            photoInput.parentNode.appendChild(btnStart);
+        }
+
+        // Container for video/canvas
+        var container = document.createElement('div');
         container.id = 'webcam-container-' + inputId;
         container.style.display = 'none';
         container.style.marginTop = '10px';
-        container.style.marginBottom = '10px';
-        container.style.border = '1px solid #ccc';
-        container.style.padding = '10px';
-        container.style.width = '320px';
-        container.style.maxWidth = '100%';
         container.style.textAlign = 'center';
+        container.style.backgroundColor = '#f5f9fd';
+        container.style.border = '1px solid #cddce6';
+        container.style.padding = '10px';
+        container.style.borderRadius = '3px';
 
+        var video = document.createElement('video');
         video.setAttribute('autoplay', '');
         video.setAttribute('playsinline', '');
-        video.style.width = '100%';
+        video.style.maxWidth = '100%';
+        video.style.maxHeight = '400px';
         video.style.height = 'auto';
 
+        var canvas = document.createElement('canvas');
+        canvas.style.maxWidth = '100%';
+        canvas.style.height = 'auto';
         canvas.style.display = 'none';
 
         var controls = document.createElement('div');
-        controls.style.marginTop = '5px';
+        controls.style.marginTop = '10px';
 
-        var btnCapture = document.createElement('button');
-        btnCapture.type = 'button';
-        btnCapture.innerText = 'Capturar';
-        btnCapture.className = 'botaolistagem';
-        btnCapture.style.marginRight = '5px';
+        function createBtn(value, cls, clickHandler) {
+            var btn = document.createElement('input');
+            btn.type = 'button';
+            btn.value = value;
+            btn.className = cls;
+            btn.style.margin = '0 5px';
+            btn.onclick = clickHandler;
+            return btn;
+        }
 
-        var btnCancel = document.createElement('button');
-        btnCancel.type = 'button';
-        btnCancel.innerText = 'Cancelar';
-        btnCancel.className = 'botaolistagem';
+        // btn-green for primary action, btn_small for others
+        var btnCapture = createBtn('Capturar', 'btn-green', capture);
+        var btnRecapture = createBtn('Tirar Outra', 'btn_small', start);
+        var btnCancel = createBtn('Fechar', 'btn_small', stop);
+
+        btnRecapture.style.display = 'none';
 
         controls.appendChild(btnCapture);
+        controls.appendChild(btnRecapture);
         controls.appendChild(btnCancel);
 
         container.appendChild(video);
         container.appendChild(canvas);
         container.appendChild(controls);
 
-        // Append container after the file input
-        photoInput.parentNode.insertBefore(container, photoInput.nextSibling);
+        // Append container to the parent cell (at the bottom, after description)
+        photoInput.parentNode.appendChild(container);
 
-        // Add "Take Photo" button
-        var btnStart = document.createElement('button');
-        btnStart.type = 'button';
-        btnStart.innerText = '📷 Tirar foto com a câmera';
-        btnStart.className = 'botaolistagem';
-        btnStart.style.display = 'block';
-        btnStart.style.marginTop = '5px';
+        var stream = null;
 
-        photoInput.parentNode.insertBefore(btnStart, container);
-
-        // Functions
         function start() {
             container.style.display = 'block';
+            video.style.display = 'inline-block';
+            canvas.style.display = 'none';
+            btnCapture.style.display = 'inline-block';
+            btnRecapture.style.display = 'none';
+            btnStart.disabled = true;
+
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ video: true })
                     .then(function(s) {
@@ -86,13 +115,13 @@ var WebcamCapture = (function() {
                         video.play();
                     })
                     .catch(function(err) {
-                        console.error("An error occurred: " + err);
-                        alert('Não foi possível acessar a câmera. Verifique se você deu permissão.');
-                        container.style.display = 'none';
+                        console.error("Webcam error: " + err);
+                        alert('Não foi possível acessar a câmera: ' + err.message);
+                        stop();
                     });
             } else {
                 alert('Seu navegador não suporta acesso à câmera.');
-                container.style.display = 'none';
+                stop();
             }
         }
 
@@ -104,6 +133,7 @@ var WebcamCapture = (function() {
                 stream = null;
             }
             container.style.display = 'none';
+            btnStart.disabled = false;
         }
 
         function capture() {
@@ -118,27 +148,52 @@ var WebcamCapture = (function() {
 
             canvas.toBlob(function(blob) {
                 if (blob.size > 2 * 1024 * 1024) {
-                    alert('A imagem capturada é muito grande (maior que 2MB). Tente ajustar a resolução da câmera ou iluminação.');
+                    alert('A imagem é muito grande (>2MB).');
                     return;
                 }
 
-                var file = new File([blob], "webcam_capture.jpg", { type: "image/jpeg" });
+                // Create file
+                var file = new File([blob], "foto_camera.jpg", { type: "image/jpeg" });
 
-                var dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                photoInput.files = dataTransfer.files;
+                // Assign to input
+                try {
+                    var dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    photoInput.files = dataTransfer.files;
+                } catch(e) {
+                    console.error("DataTransfer error: ", e);
+                }
 
-                // Visual feedback
-                alert('Foto capturada e selecionada com sucesso!');
+                // Dispatch change event so other scripts can react
+                photoInput.dispatchEvent(new Event('change'));
 
-                stop();
+                // Update label manually just in case
+                if (label) {
+                    var span = label.querySelector('span');
+                    if (span) {
+                        span.innerText = file.name;
+                        // span.style.color = '#47728f';
+                    }
+                }
+
+                // Show preview (keep container visible)
+                video.style.display = 'none';
+                canvas.style.display = 'inline-block';
+                btnCapture.style.display = 'none';
+                btnRecapture.style.display = 'inline-block';
+
+                // Stop stream to save resources
+                if (stream) {
+                     stream.getTracks().forEach(function(track) {
+                        track.stop();
+                    });
+                    stream = null;
+                }
+
             }, 'image/jpeg', 0.85);
         }
 
-        // Bind events
         btnStart.onclick = start;
-        btnCancel.onclick = stop;
-        btnCapture.onclick = capture;
     }
 
     return {
