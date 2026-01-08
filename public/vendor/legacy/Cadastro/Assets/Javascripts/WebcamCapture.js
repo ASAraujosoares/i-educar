@@ -17,29 +17,34 @@ var WebcamCapture = (function() {
         }
 
         // Find the label associated with the input
-        // clsCampos generates label with for="id"
         var label = document.querySelector('label[for="' + photoInput.id + '"]');
 
         // Create "Open Camera" button
-        var btnStart = document.createElement('input');
-        btnStart.type = 'button';
-        btnStart.value = '📷 Abrir Câmera';
-        btnStart.className = 'btn_small';
+        // Mimicking the style of the "Escolha um arquivo" button which is a label > strong
+        // .btn-green gives background color. We add padding/styling to match.
+        var btnStart = document.createElement('a');
+        btnStart.innerText = '📷 Abrir Câmera';
+        btnStart.className = 'btn-green';
         btnStart.id = 'btn-webcam-' + inputId;
-        // Adjust margins to align with the "Escolha um arquivo" button/label
-        // The label likely has some display property, we want to sit next to it.
-        btnStart.style.margin = '0 0 0 10px';
-        btnStart.style.verticalAlign = 'middle';
+
+        // Inline styles to match the adjacent button exactly
+        btnStart.style.cursor = 'pointer';
+        btnStart.style.display = 'inline-block';
+        btnStart.style.fontWeight = 'bold';
+        btnStart.style.padding = '8px';
+        btnStart.style.borderRadius = '3px';
+        btnStart.style.marginLeft = '5px';
+        btnStart.style.fontSize = '14px';
+        btnStart.style.lineHeight = 'normal';
+        btnStart.style.textDecoration = 'none';
+        btnStart.style.color = '#FFF';
 
         // Insert button after the label.
-        // The label is often followed by a text node (space) and BR or description text.
-        // We insert immediately after the label to try to keep it on the same line.
         if (label && label.nextSibling) {
             label.parentNode.insertBefore(btnStart, label.nextSibling);
         } else if (label) {
             label.parentNode.appendChild(btnStart);
         } else {
-            // Fallback
             photoInput.parentNode.appendChild(btnStart);
         }
 
@@ -48,64 +53,81 @@ var WebcamCapture = (function() {
         container.id = 'webcam-container-' + inputId;
         container.style.display = 'none';
         container.style.marginTop = '10px';
-        container.style.textAlign = 'center';
-        container.style.backgroundColor = '#f5f9fd';
-        container.style.border = '1px solid #cddce6';
-        container.style.padding = '10px';
-        container.style.borderRadius = '3px';
+        container.style.textAlign = 'left'; // Align left as per screenshot
+
+        var previewLabel = document.createElement('div');
+        previewLabel.innerText = 'Preview da captura:';
+        previewLabel.style.color = '#47728f';
+        previewLabel.style.fontWeight = 'bold';
+        previewLabel.style.marginBottom = '5px';
+        previewLabel.style.fontSize = '14px';
 
         var video = document.createElement('video');
         video.setAttribute('autoplay', '');
         video.setAttribute('playsinline', '');
-        video.style.maxWidth = '100%';
-        video.style.maxHeight = '400px';
-        video.style.height = 'auto';
+        // Smaller size
+        video.style.width = '240px';
+        video.style.height = '180px';
+        video.style.objectFit = 'cover';
+        video.style.border = '1px solid #47728f'; // Green border in screenshot looks like #0ac336 or the text color
+        // Screenshot border looks green actually.
+        video.style.border = '2px solid #0ac336';
 
         var canvas = document.createElement('canvas');
-        canvas.style.maxWidth = '100%';
-        canvas.style.height = 'auto';
+        canvas.style.width = '240px';
+        canvas.style.height = '180px';
+        canvas.style.objectFit = 'cover';
         canvas.style.display = 'none';
+        canvas.style.border = '2px solid #0ac336';
 
-        var controls = document.createElement('div');
-        controls.style.marginTop = '10px';
+        // Hidden controls container (if we need extra buttons)
+        // But the screenshot implies the main button might toggle or we just click capture.
+        // To keep it simple and match the "Escolha um arquivo" flow, let's put a "Capturar" button
+        // OR make the "Abrir Câmera" button toggle state.
 
-        function createBtn(value, cls, clickHandler) {
-            var btn = document.createElement('input');
-            btn.type = 'button';
-            btn.value = value;
-            btn.className = cls;
-            btn.style.margin = '0 5px';
-            btn.onclick = clickHandler;
-            return btn;
-        }
+        // However, user said "place the Open Camera button next to Choose File".
+        // When camera is open, we need a way to Capture.
+        // Let's change the "Abrir Câmera" button text/action when active,
+        // or add a Capture button overlay or below.
 
-        // btn-green for primary action, btn_small for others
-        var btnCapture = createBtn('Capturar', 'btn-green', capture);
-        var btnRecapture = createBtn('Tirar Outra', 'btn_small', start);
-        var btnCancel = createBtn('Fechar', 'btn_small', stop);
+        // Let's add a small "Capturar" button below the video for clarity,
+        // or toggle the main button. Toggling the main button is cleaner.
 
-        btnRecapture.style.display = 'none';
-
-        controls.appendChild(btnCapture);
-        controls.appendChild(btnRecapture);
-        controls.appendChild(btnCancel);
-
+        container.appendChild(previewLabel);
         container.appendChild(video);
         container.appendChild(canvas);
-        container.appendChild(controls);
 
-        // Append container to the parent cell (at the bottom, after description)
+        // We can place a capture button inside the container
+        var btnCapture = document.createElement('button');
+        btnCapture.innerText = 'Capturar Foto';
+        btnCapture.className = 'btn-green';
+        btnCapture.style.display = 'block';
+        btnCapture.style.marginTop = '5px';
+        btnCapture.style.padding = '5px 10px';
+        btnCapture.style.fontSize = '12px';
+        btnCapture.style.width = '240px'; // Match video width
+
+        container.appendChild(btnCapture);
+
+        // Append container to the parent cell
         photoInput.parentNode.appendChild(container);
 
         var stream = null;
+        var isCameraActive = false;
 
         function start() {
+            if (isCameraActive) return; // Already active
+
             container.style.display = 'block';
-            video.style.display = 'inline-block';
+            video.style.display = 'block';
             canvas.style.display = 'none';
-            btnCapture.style.display = 'inline-block';
-            btnRecapture.style.display = 'none';
-            btnStart.disabled = true;
+            btnCapture.style.display = 'block';
+
+            // Reset button if we are retaking
+            btnStart.innerText = '📷 Fechar Câmera';
+            btnStart.style.backgroundColor = '#aa2e28'; // Red for close/cancel? Or keep green?
+            // Custom CSS has .btn-danger { background-color: #aa2e28 }
+            // Let's keep it consistent or just toggle text.
 
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ video: true })
@@ -113,6 +135,7 @@ var WebcamCapture = (function() {
                         stream = s;
                         video.srcObject = stream;
                         video.play();
+                        isCameraActive = true;
                     })
                     .catch(function(err) {
                         console.error("Webcam error: " + err);
@@ -132,8 +155,22 @@ var WebcamCapture = (function() {
                 });
                 stream = null;
             }
-            container.style.display = 'none';
-            btnStart.disabled = false;
+            // If we have a captured image (canvas visible), don't hide container, just hide video
+            if (canvas.style.display === 'none') {
+                 container.style.display = 'none';
+            }
+
+            isCameraActive = false;
+            btnStart.innerText = '📷 Tirar outra foto'; // Update text as per screenshot suggestion
+            btnStart.style.backgroundColor = '#0ac336'; // Back to green
+        }
+
+        function toggle() {
+            if (isCameraActive) {
+                stop();
+            } else {
+                start();
+            }
         }
 
         function capture() {
@@ -152,10 +189,8 @@ var WebcamCapture = (function() {
                     return;
                 }
 
-                // Create file
                 var file = new File([blob], "foto_camera.jpg", { type: "image/jpeg" });
 
-                // Assign to input
                 try {
                     var dataTransfer = new DataTransfer();
                     dataTransfer.items.add(file);
@@ -164,36 +199,38 @@ var WebcamCapture = (function() {
                     console.error("DataTransfer error: ", e);
                 }
 
-                // Dispatch change event so other scripts can react
                 photoInput.dispatchEvent(new Event('change'));
 
-                // Update label manually just in case
                 if (label) {
                     var span = label.querySelector('span');
                     if (span) {
                         span.innerText = file.name;
-                        // span.style.color = '#47728f';
                     }
                 }
 
-                // Show preview (keep container visible)
+                // Switch view to canvas
                 video.style.display = 'none';
-                canvas.style.display = 'inline-block';
-                btnCapture.style.display = 'none';
-                btnRecapture.style.display = 'inline-block';
+                canvas.style.display = 'block';
+                btnCapture.style.display = 'none'; // Hide capture button
 
-                // Stop stream to save resources
+                // Stop stream
                 if (stream) {
                      stream.getTracks().forEach(function(track) {
                         track.stop();
                     });
                     stream = null;
                 }
+                isCameraActive = false;
+
+                // Update main button text
+                btnStart.innerText = '📷 Tirar outra foto';
+                btnStart.style.backgroundColor = '#0ac336';
 
             }, 'image/jpeg', 0.85);
         }
 
-        btnStart.onclick = start;
+        btnStart.onclick = toggle;
+        btnCapture.onclick = capture;
     }
 
     return {
