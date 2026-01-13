@@ -50,6 +50,7 @@ return new class extends Migration
                 $table->primary(['registro_frequencia_id', 'ref_cod_servidor'], 'pk_reg_freq_servidor');
 
                 // Composite Foreign Key for Servidor
+                // Reference strictly to pmieducar.servidor using composite key
                 $table->foreign(['ref_cod_servidor', 'ref_cod_instituicao'])
                       ->references(['cod_servidor', 'ref_cod_instituicao'])
                       ->on('pmieducar.servidor');
@@ -57,16 +58,21 @@ return new class extends Migration
         }
 
         // 2. Create Menu and Permissions
-        $parentMenu = Menu::query()
-            ->where('title', 'Servidores')
-            ->whereNull('parent_id')
-            ->first();
+        // Find parent menu "Servidores" by its legacy process ID (71)
+        $parentMenu = Menu::query()->where('old', 71)->first();
 
+        // Fallback to searching by title if ID 71 is not found (unlikely)
         if (!$parentMenu) {
-            $parentMenu = Menu::query()->where('link', 'ilike', '%educar_servidores_index.php%')->first();
+            $parentMenu = Menu::query()
+                ->where('title', 'Servidores')
+                ->whereNull('parent_id')
+                ->first();
         }
 
-        if ($parentMenu) {
+        // Only create if not already exists (check by process ID)
+        $existingMenu = Menu::query()->where('process', 999888)->exists();
+
+        if ($parentMenu && !$existingMenu) {
             $menu = Menu::query()->create([
                 'parent_id' => $parentMenu->id,
                 'title' => 'Frequência de Servidores',
@@ -80,6 +86,7 @@ return new class extends Migration
             ]);
 
             // Add permission for Admin (Level 1)
+            // Using DB::table for pivot to be safe
             DB::table('pmieducar.menu_tipo_usuario')->insert([
                 'menu_id' => $menu->id,
                 'ref_cod_tipo_usuario' => LegacyUserType::LEVEL_ADMIN,

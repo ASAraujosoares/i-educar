@@ -19,7 +19,6 @@ return new class extends clsCadastro
     public $frequencia_servidores = [];
     public $titulo;
 
-    // Define explicitamente para evitar erro de "property not defined"
     public $url_cancelar;
     public $nome_url_cancelar;
 
@@ -34,14 +33,13 @@ return new class extends clsCadastro
         $this->pessoa_logada = Auth::id();
         $retorno = 'Novo';
 
-        // Captura segura de parâmetros (Compatibilidade Legada + Laravel)
+        // Captura segura de parâmetros
         $this->id = $_REQUEST['id'] ?? null;
         $this->ref_cod_instituicao = $_REQUEST['ref_cod_instituicao'] ?? null;
         $this->ref_cod_escola = $_REQUEST['ref_cod_escola'] ?? null;
         $this->ano = $_REQUEST['ano'] ?? date('Y');
         $this->mes = $_REQUEST['mes'] ?? null;
 
-        // Garante que a URL de cancelar sempre tenha um valor válido (Correção Erro 500)
         $paramsCancelar = http_build_query([
             'ref_cod_instituicao' => $this->ref_cod_instituicao,
             'ref_cod_escola' => $this->ref_cod_escola,
@@ -51,7 +49,6 @@ return new class extends clsCadastro
         $this->url_cancelar = "educar_frequencia_servidor_lst.php?{$paramsCancelar}";
         $this->nome_url_cancelar = 'Cancelar';
 
-        // Lógica de Edição
         if (is_numeric($this->id) && $this->id > 0) {
             $retorno = 'Editar';
             if (!$this->carregaDadosDoRegistro()) {
@@ -65,6 +62,9 @@ return new class extends clsCadastro
             if ($obj_permissoes->permissao_excluir($this->processoAp, $this->pessoa_logada, 7)) {
                 $this->fexcluir = true;
             }
+        } else {
+             // Defaults if not set
+             if (!$this->ano) $this->ano = date('Y');
         }
 
         // Recupera dados do POST em caso de recarregamento/erro
@@ -93,41 +93,53 @@ return new class extends clsCadastro
 
     public function Gerar()
     {
-        // Campos ocultos obrigatórios para persistência
         $this->campoOculto('id', $this->id);
-        $this->campoOculto('ref_cod_instituicao', $this->ref_cod_instituicao);
-        $this->campoOculto('ref_cod_escola', $this->ref_cod_escola);
-        $this->campoOculto('ano', $this->ano);
 
         try {
-            // 1. Cabeçalho
-            $instituicao = DB::table('pmieducar.instituicao')
-                ->where('cod_instituicao', $this->ref_cod_instituicao)
-                ->value('nm_instituicao');
+            // 1. Seleção de Instituição e Escola
+            if ($this->id) {
+                 // Modo Edição: Apenas exibir
+                $this->campoOculto('ref_cod_instituicao', $this->ref_cod_instituicao);
+                $this->campoOculto('ref_cod_escola', $this->ref_cod_escola);
 
-            $escola = DB::table('pmieducar.escola as e')
-                ->join('cadastro.pessoa as p', 'e.ref_idpes', '=', 'p.idpes')
-                ->where('e.cod_escola', $this->ref_cod_escola)
-                ->value('p.nome');
+                $instituicao = DB::table('pmieducar.instituicao')
+                    ->where('cod_instituicao', $this->ref_cod_instituicao)
+                    ->value('nm_instituicao');
 
-            $this->campoRotulo('nm_instituicao', 'Instituição', htmlspecialchars($instituicao ?? 'Não informada'));
-            $this->campoRotulo('nm_escola', 'Escola', htmlspecialchars($escola ?? 'Não encontrada'));
-            $this->campoRotulo('ano_letivo', 'Ano', htmlspecialchars($this->ano));
+                $escola = DB::table('pmieducar.escola as e')
+                    ->join('cadastro.pessoa as p', 'e.ref_idpes', '=', 'p.idpes')
+                    ->where('e.cod_escola', $this->ref_cod_escola)
+                    ->value('p.nome');
 
-            // 2. Seletor de Mês
-            $opcoesMes = ['' => 'Selecione'] + $this->getMesesDisponiveis();
-            $mesDesabilitado = (bool)$this->id;
+                $this->campoRotulo('nm_instituicao', 'Instituição', htmlspecialchars($instituicao ?? 'Não informada'));
+                $this->campoRotulo('nm_escola', 'Escola', htmlspecialchars($escola ?? 'Não encontrada'));
+            } else {
+                // Modo Novo: Permitir seleção
+                $this->inputsHelper()->dynamic('instituicao', ['value' => $this->ref_cod_instituicao]);
+                $this->inputsHelper()->dynamic('escola', ['value' => $this->ref_cod_escola]);
+            }
 
-            $this->campoLista(
-                'mes',
-                'Mês de Referência',
-                $opcoesMes,
-                $this->mes,
-                'onSelectMes(this.value)',
-                false, '', '', $mesDesabilitado
-            );
+            // 2. Ano
+            $this->campoNumero('ano', 'Ano', $this->ano, 4, 4, true);
 
-            // 3. Grid de Lançamento
+            // 3. Seletor de Mês
+            if ($this->ref_cod_escola && $this->ano) {
+                 $opcoesMes = ['' => 'Selecione'] + $this->getMesesDisponiveis();
+                 $mesDesabilitado = (bool)$this->id;
+
+                 $this->campoLista(
+                     'mes',
+                     'Mês de Referência',
+                     $opcoesMes,
+                     $this->mes,
+                     'onSelectMes(this.value)',
+                     false, '', '', $mesDesabilitado
+                 );
+            } else {
+                 $this->campoRotulo('aviso_filtros', 'Aviso', '<div class="alert alert-info">Selecione Escola e Ano para habilitar o mês.</div>');
+            }
+
+            // 4. Grid de Lançamento
             if ($this->mes && $this->ano && $this->ref_cod_escola) {
                 // Carrega os dados (Método interno para garantir carregamento)
                 $this->servidores = $this->buscarDadosFrequencia(
@@ -141,16 +153,16 @@ return new class extends clsCadastro
                     $this->addHtml('<tr><td colspan="2" class="formmdtd" style="padding: 0;">');
                     $this->addHtml($this->geraTabelaServidores());
                     $this->addHtml('</td></tr>');
+
+                    // 5. Observações (Só mostra se tiver grid)
+                    $this->addHtml('<tr><td colspan="2"><br></td></tr>');
+                    $this->campoMemo('observacoes', 'Observações', $this->observacoes, 60, 5, false);
                 } else {
                     $this->campoRotulo('aviso', 'Atenção', '<div class="alert alert-warning">Nenhum servidor ativo encontrado para esta escola.</div>');
                 }
-            } else {
+            } else if ($this->ref_cod_escola && $this->ano) {
                 $this->campoRotulo('info', '', '<div class="alert alert-info">Selecione o mês para carregar a lista de servidores.</div>');
             }
-
-            // 4. Observações
-            $this->addHtml('<tr><td colspan="2"><br></td></tr>');
-            $this->campoMemo('observacoes', 'Observações', $this->observacoes, 60, 5, false);
 
         } catch (\Exception $e) {
             Log::error("Erro no formulário de frequência: " . $e->getMessage());
@@ -215,7 +227,6 @@ return new class extends clsCadastro
                     'observacoes' => $obs
                 ];
 
-                // Atualiza campos calculados apenas se enviados
                 if(isset($_POST['faltas_justificadas'][$servidor_id])) {
                      $updateData['faltas_justificadas'] = $_POST['faltas_justificadas'][$servidor_id];
                 }
@@ -370,6 +381,15 @@ return new class extends clsCadastro
 
     private function validaEntrada($is_edit = false)
     {
+        if (empty($this->ref_cod_instituicao)) {
+             $this->mensagem = "Selecione a Instituição.";
+             return false;
+        }
+        if (empty($this->ref_cod_escola)) {
+             $this->mensagem = "Selecione a Escola.";
+             return false;
+        }
+
         $mes_a_validar = $is_edit ? $this->mes : ($_POST['mes'] ?? null);
         if (empty($mes_a_validar)) {
             $this->mensagem = "Selecione o Mês de Referência.";
