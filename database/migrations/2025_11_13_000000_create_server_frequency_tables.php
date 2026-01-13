@@ -48,32 +48,41 @@ return new class extends Migration
                 $table->text('observacoes')->nullable();
 
                 $table->primary(['registro_frequencia_id', 'ref_cod_servidor'], 'pk_reg_freq_servidor');
-                $table->foreign('ref_cod_servidor')->references('cod_servidor')->on('pmieducar.servidor');
+
+                // Composite Foreign Key for Servidor
+                $table->foreign(['ref_cod_servidor', 'ref_cod_instituicao'])
+                      ->references(['cod_servidor', 'ref_cod_instituicao'])
+                      ->on('pmieducar.servidor');
             });
         }
 
         // 2. Create Menu and Permissions
-        $parentMenu = Menu::query()
-            ->where('title', 'Servidores')
-            ->whereNull('parent_id') // Assuming Servidores is a root menu or near root, wait, usually it is under something else or root.
-            ->first();
+        // Use DB::table to avoid model issues if App\Menu doesn't exist in some envs,
+        // though usually migrations in this project use models if available.
+        // We will try to find the parent menu safely.
 
-        // If not found as root, try searching by link or recursively.
-        if (!$parentMenu) {
-            $parentMenu = Menu::query()->where('link', 'ilike', '%educar_servidores_index.php%')->first();
+        $parentMenuId = DB::table('pmiacoes.menu_menu')
+            ->where('tt_menu', 'Servidores')
+            ->whereNull('ref_cod_menu_pai')
+            ->value('cod_menu_menu');
+
+        if (!$parentMenuId) {
+             $parentMenuId = DB::table('pmiacoes.menu_menu')
+                ->where('link', 'ilike', '%educar_servidores_index.php%')
+                ->value('cod_menu_menu');
         }
 
-        if ($parentMenu) {
-            $menuId = Menu::query()->insertGetId([
-                'parent_id' => $parentMenu->id,
-                'title' => 'Frequência de Servidores',
-                'description' => 'Frequência de Servidores',
+        if ($parentMenuId) {
+            $menuId = DB::table('pmiacoes.menu_menu')->insertGetId([
+                'ref_cod_menu_pai' => $parentMenuId,
+                'tt_menu' => 'Frequência de Servidores',
+                'txt_permissao' => 'Frequência de Servidores',
                 'link' => 'educar_frequencia_servidor_lst.php',
-                'type' => 1, // Menu type
+                'ref_cod_menu_tipo' => 1, // Menu type
                 'process' => 999888,
-                'order' => 0,
-                'old' => 999888, // Using same ID for old reference
-                'active' => 1,
+                'ordenacao' => 0,
+                'old' => 999888,
+                'ativo' => 1,
             ]);
 
             // Add permission for Admin (Level 1)
@@ -99,10 +108,10 @@ return new class extends Migration
         Schema::dropIfExists('modules.registro_frequencia');
 
         // Remove Menu
-        $menuId = Menu::query()->where('process', 999888)->value('id');
+        $menuId = DB::table('pmiacoes.menu_menu')->where('process', 999888)->value('cod_menu_menu');
         if ($menuId) {
             DB::table('pmieducar.menu_tipo_usuario')->where('menu_id', $menuId)->delete();
-            Menu::query()->where('id', $menuId)->delete();
+            DB::table('pmiacoes.menu_menu')->where('cod_menu_menu', $menuId)->delete();
         }
     }
 };
