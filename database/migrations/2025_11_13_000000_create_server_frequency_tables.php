@@ -57,37 +57,31 @@ return new class extends Migration
         }
 
         // 2. Create Menu and Permissions
-        // Use DB::table to avoid model issues if App\Menu doesn't exist in some envs,
-        // though usually migrations in this project use models if available.
-        // We will try to find the parent menu safely.
+        $parentMenu = Menu::query()
+            ->where('title', 'Servidores')
+            ->whereNull('parent_id')
+            ->first();
 
-        $parentMenuId = DB::table('pmiacoes.menu_menu')
-            ->where('tt_menu', 'Servidores')
-            ->whereNull('ref_cod_menu_pai')
-            ->value('cod_menu_menu');
-
-        if (!$parentMenuId) {
-             $parentMenuId = DB::table('pmiacoes.menu_menu')
-                ->where('link', 'ilike', '%educar_servidores_index.php%')
-                ->value('cod_menu_menu');
+        if (!$parentMenu) {
+            $parentMenu = Menu::query()->where('link', 'ilike', '%educar_servidores_index.php%')->first();
         }
 
-        if ($parentMenuId) {
-            $menuId = DB::table('pmiacoes.menu_menu')->insertGetId([
-                'ref_cod_menu_pai' => $parentMenuId,
-                'tt_menu' => 'Frequência de Servidores',
-                'txt_permissao' => 'Frequência de Servidores',
+        if ($parentMenu) {
+            $menu = Menu::query()->create([
+                'parent_id' => $parentMenu->id,
+                'title' => 'Frequência de Servidores',
+                'description' => 'Frequência de Servidores',
                 'link' => 'educar_frequencia_servidor_lst.php',
-                'ref_cod_menu_tipo' => 1, // Menu type
+                'type' => 1, // Menu type
                 'process' => 999888,
-                'ordenacao' => 0,
+                'order' => 0,
                 'old' => 999888,
-                'ativo' => 1,
+                'active' => 1,
             ]);
 
             // Add permission for Admin (Level 1)
             DB::table('pmieducar.menu_tipo_usuario')->insert([
-                'menu_id' => $menuId,
+                'menu_id' => $menu->id,
                 'ref_cod_tipo_usuario' => LegacyUserType::LEVEL_ADMIN,
                 'visualiza' => 1,
                 'cadastra' => 1,
@@ -108,10 +102,10 @@ return new class extends Migration
         Schema::dropIfExists('modules.registro_frequencia');
 
         // Remove Menu
-        $menuId = DB::table('pmiacoes.menu_menu')->where('process', 999888)->value('cod_menu_menu');
-        if ($menuId) {
-            DB::table('pmieducar.menu_tipo_usuario')->where('menu_id', $menuId)->delete();
-            DB::table('pmiacoes.menu_menu')->where('cod_menu_menu', $menuId)->delete();
+        $menu = Menu::query()->where('process', 999888)->first();
+        if ($menu) {
+            DB::table('pmieducar.menu_tipo_usuario')->where('menu_id', $menu->id)->delete();
+            $menu->delete();
         }
     }
 };
