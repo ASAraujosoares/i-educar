@@ -195,9 +195,9 @@ class LegacyStudent extends LegacyModel
     public function getGuardianName(): ?string
     {
         return match ($this->guardianType) {
-            'm' => $this->individual->mother->name,
-            'p' => $this->individual->father->name,
-            'r' => $this->individual->responsible->name,
+            'm' => $this->individual->mother?->name,
+            'p' => $this->individual->father?->name,
+            'r' => $this->individual->responsible?->name,
             'a' => $this->joinGuardionNames(),
             default => null
         };
@@ -223,7 +223,7 @@ class LegacyStudent extends LegacyModel
 
     private function joinGuardionNames(): ?string
     {
-        $join = $this->individual->mother->name . ', ' . $this->individual->father->name;
+        $join = $this->individual->mother?->name . ', ' . $this->individual->father?->name;
 
         return strlen($join) < 3 ? null : $join;
     }
