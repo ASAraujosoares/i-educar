@@ -171,6 +171,26 @@ return new class extends clsCadastro
             'label' => 'Desejo receber novidades do produto por e-mail',
             'value' => $this->receber_novidades,
         ]);
+        
+        $styles = [
+            '/vendor/legacy/Cadastro/Assets/Stylesheets/PessoaFisica.css'
+        ];
+        
+        Portabilis_View_Helper_Application::loadStylesheet($this, $styles);
+
+        Portabilis_View_Helper_Application::loadJavascript($this, [
+            '/vendor/legacy/Cadastro/Assets/Javascripts/WebcamCapture.js'
+        ]);
+
+        // A barra invertida \ antes de $j para informando que é um JS não uma variável
+        Portabilis_View_Helper_Application::embedJavascript($this, "
+            \$j(document).ready(function() {
+                // Ajuste visual para evitar quebra de linha na tabela
+                \$j('input[name=\"file\"]').closest('td').css('white-space', 'nowrap');
+                
+                WebcamCapture.init('file');
+            });
+        ");
     }
 
     public function Novo()
